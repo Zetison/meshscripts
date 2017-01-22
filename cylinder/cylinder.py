@@ -7,6 +7,7 @@ import xml.etree.ElementTree as xml
 from splipy import curve_factory as cf, surface_factory as sf
 from splipy.IO import G2
 from splipy.utils.refinement import geometric_refine
+from splipy.volume_factory import extrude
 
 
 def graded_space(start, step, factor, N):
@@ -20,8 +21,9 @@ def graded_space(start, step, factor, N):
 
 class PatchDict(OrderedDict):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, dim, *args, **kwargs):
         super(PatchDict, self).__init__(*args, **kwargs)
+        self.dim = dim
         self.masters = {}
         self.boundaries = {}
 
@@ -35,7 +37,11 @@ class PatchDict(OrderedDict):
             rev = True if rest else False
             self.masters[(master, medge)] = (slave, sedge, rev)
 
-    def boundary(self, name, patch, number, kind='edge'):
+    def boundary(self, name, patch, number, dim=-1):
+        kind = {
+            2: ['vertex', 'edge'],
+            3: ['vertex', 'edge', 'face'],
+        }[self.dim][dim]
         self.boundaries.setdefault(name, {}).setdefault(kind, []).append((patch, number))
 
     def write(self, fn, order=4):
@@ -86,15 +92,17 @@ class PatchDict(OrderedDict):
 @click.option('--front', default=20.0)
 @click.option('--back', default=40.0)
 @click.option('--side', default=20.0)
+@click.option('--height', default=0.0)
 @click.option('--Re', default=100.0)
-@click.option('--grad', default=1.1)
+@click.option('--grad', default=1.05)
 @click.option('--nel-bndl', default=10)
 @click.option('--nel-circ', default=40)
+@click.option('--nel-height', default=10)
 @click.option('--order', default=4)
 @click.option('--outer-graded/--no-outer-graded', default=True)
 @click.option('--out', default='out')
-def cylinder(diam, width, front, back, side, re, grad, nel_bndl, nel_circ, order, out,
-             outer_graded):
+def cylinder(diam, width, front, back, side, height, re, grad,
+             nel_bndl, nel_circ, nel_height, order, out, outer_graded):
     assert all(f >= width for f in [front, back, side])
 
     rad_cyl = diam / 2
@@ -104,7 +112,8 @@ def cylinder(diam, width, front, back, side, re, grad, nel_bndl, nel_circ, order
     side = side * rad_cyl - width
     elsize = width * 2 / nel_circ
 
-    patches = PatchDict()
+    dim = 2 if height == 0.0 else 3
+    patches = PatchDict(dim)
 
     # We want nel_bndl elements inside the boundary layer
     # Calculate how small the inner element must be
@@ -181,8 +190,8 @@ def cylinder(diam, width, front, back, side, re, grad, nel_bndl, nel_circ, order
         patches.boundary('inflow', 'fr', 1)
     else:
         patches.boundary('inflow', 'ol', 2)
-        patches.boundary('inflow', 'ou', 4, 'vertex')
-        patches.boundary('inflow', 'od', 2, 'vertex')
+        patches.boundary('inflow', 'ou', 4, dim=-2)
+        patches.boundary('inflow', 'od', 2, dim=-2)
 
     if back > 0:
         la = patches['or'].section(u=-1)
@@ -254,10 +263,10 @@ def cylinder(diam, width, front, back, side, re, grad, nel_bndl, nel_circ, order
     else:
         patches.boundary('top', 'ou', 2)
         patches.boundary('bottom', 'od', 2)
-        patches.boundary('top', 'or', 4, 'vertex')
-        patches.boundary('bottom', 'or', 2, 'vertex')
-        patches.boundary('top', 'ol', 2, 'vertex')
-        patches.boundary('bottom', 'ol', 4, 'vertex')
+        patches.boundary('top', 'or', 4, dim=-2)
+        patches.boundary('bottom', 'or', 2, dim=-2)
+        patches.boundary('top', 'ol', 2, dim=-2)
+        patches.boundary('bottom', 'ol', 4, dim=-2)
 
         if 'fr' in patches:
             patches.boundary('top', 'fr', 4)
@@ -266,6 +275,20 @@ def cylinder(diam, width, front, back, side, re, grad, nel_bndl, nel_circ, order
         if 'ba' in patches:
             patches.boundary('top', 'ba', 4)
             patches.boundary('bottom', 'ba', 3)
+
+
+    if height > 0.0:
+        names = ['iu', 'il', 'id', 'ir', 'ou', 'ol', 'od', 'or',
+                 'fr', 'ba', 'up', 'upba', 'upfr', 'dn', 'dnba', 'dnfr']
+        for pname in names:
+            if pname not in patches:
+                continue
+            patch = patches[pname]
+            patch = extrude(patch, (0, 0, height))
+            patch.raise_order(0, 0, 2)
+            patch.refine(v=nel_height-1)
+            patches.boundary('zup', pname, 6)
+            patches.boundary('zdown', pname, 5)
 
     patches.write(out, order=order)
 
