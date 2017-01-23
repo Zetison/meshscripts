@@ -34,8 +34,9 @@ class PatchDict(OrderedDict):
 
     def connect(self, *args):
         for master, medge, slave, sedge, *rest in args:
-            rev = True if rest else False
-            self.masters[(master, medge)] = (slave, sedge, rev)
+            rev = 'rev' in rest
+            per = 'per' in rest
+            self.masters[(master, medge)] = (slave, sedge, rev, per)
 
     def boundary(self, name, patch, number, dim=-1):
         kind = {
@@ -59,7 +60,7 @@ class PatchDict(OrderedDict):
         xml.SubElement(dom, 'patchfile').text = fn + '.g2'
 
         topology = xml.SubElement(dom, 'topology')
-        for (master, medge), (slave, sedge, rev) in self.masters.items():
+        for (master, medge), (slave, sedge, rev, periodic) in self.masters.items():
             mid = pids[master] + 1
             sid = pids[slave] + 1
             if mid > sid:
@@ -67,10 +68,11 @@ class PatchDict(OrderedDict):
                 medge, sedge = sedge, medge
             xml.SubElement(topology, 'connection').attrib.update({
                 'master': str(mid),
-                'medge': str(medge),
+                'midx': str(medge),
                 'slave': str(sid),
-                'sedge': str(sedge),
+                'midx': str(sedge),
                 'reverse': 'true' if rev else 'false',
+                'periodic': 'true' if periodic else 'false',
             })
 
         topsets = xml.SubElement(dom, 'topologysets')
@@ -186,7 +188,7 @@ def cylinder(diam, width, front, back, side, height, re, grad,
         nel = int(ceil(log(1 - 1/dl * (1 - grad) * front) / log(grad)))
         geometric_refine(front_srf, grad, nel - 1, reverse=True)
         patches['fr'] = front_srf
-        patches.connect(('fr', 2, 'ol', 2, True))
+        patches.connect(('fr', 2, 'ol', 2, 'rev'))
         patches.boundary('inflow', 'fr', 1)
     else:
         patches.boundary('inflow', 'ol', 2)
@@ -213,7 +215,7 @@ def cylinder(diam, width, front, back, side, height, re, grad,
         la = patches['ou'].section(u=-1).reverse()
         lb = la + (0, side, 0)
         patches['up'] = sf.edge_curves(la, lb).set_order(4,4)
-        patches.connect(('up', 3, 'ou', 2, True), ('dn', 4, 'od', 2))
+        patches.connect(('up', 3, 'ou', 2, 'rev'), ('dn', 4, 'od', 2))
         patches.boundary('top', 'up', 4)
         patches.boundary('bottom', 'dn', 3)
 
@@ -289,6 +291,7 @@ def cylinder(diam, width, front, back, side, height, re, grad,
             patch.refine(v=nel_height-1)
             patches.boundary('zup', pname, 6)
             patches.boundary('zdown', pname, 5)
+            patches.connect((pname, 5, pname, 6, 'per'))
 
     patches.write(out, order=order)
 
