@@ -288,7 +288,8 @@ def cylinder(diam, width, front, back, side, height, re, grad,
             patch = patches[pname]
             patch = extrude(patch, (0, 0, height))
             patch.raise_order(0, 0, 2)
-            patch.refine(v=nel_height-1)
+            patch.refine(nel_height-1, direction='w')
+            patches[pname] = patch
             patches.boundary('zup', pname, 6)
             patches.boundary('zdown', pname, 5)
             patches.connect((pname, 5, pname, 6, 'per'))
