@@ -3,6 +3,7 @@ from collections import OrderedDict
 from math import ceil, log, sqrt, pi
 import numpy as np
 import xml.etree.ElementTree as xml
+import sys
 
 from splipy import curve_factory as cf, surface_factory as sf
 from splipy.IO import G2
@@ -117,15 +118,16 @@ class PatchDict(OrderedDict):
 @click.option('--height', default=0.0)
 @click.option('--Re', default=100.0)
 @click.option('--grad', default=1.05)
-@click.option('--inner-elsize', type=float, required=False)
 @click.option('--nel-bndl', default=10)
+@click.option('--inner-elsize', type=float, required=False)
+@click.option('--nel-side', type=int, required=False)
 @click.option('--nel-circ', default=40)
 @click.option('--nel-height', default=10)
 @click.option('--order', default=4)
 @click.option('--outer-graded/--no-outer-graded', default=True)
 @click.option('--out', default='out')
 def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
-             nel_bndl, nel_circ, nel_height, order, out, outer_graded):
+             nel_side, nel_bndl, nel_circ, nel_height, order, out, outer_graded):
     assert all(f >= width for f in [front, back, side])
 
     rad_cyl = diam / 2
@@ -138,13 +140,13 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
     dim = 2 if height == 0.0 else 3
     patches = PatchDict(dim)
 
-    if inner_elsize:
+    if inner_elsize and nel_side:
         # Calculate grading factor based on first element size,
         # total length and number of elements
         dr = rad_cyl * inner_elsize
         grad = find_factor(dr, width - rad_cyl, nel_side)
 
-    else:
+    elif nel_bndl and grad:
         # Calculate first element size based on total length
         # and number of elements
 
@@ -157,6 +159,10 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
         # on either side of the cylinder
         nel_side = int(ceil(log(1 - 1/dr * (1 - grad) * (width - rad_cyl)) / log(grad)))
         dr = (1 - grad) / (1 - grad ** nel_side) * (width - rad_cyl)
+
+    else:
+        print('Specify (inner-elsize and nel-side) or (nel-bndl and grad)', file=sys.stderr)
+        sys.exit(1)
 
     # Graded radial space from cylinder to edge of domain
     radial_kts = graded_space(rad_cyl, dr, grad, nel_side) + [width]
