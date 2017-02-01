@@ -117,7 +117,7 @@ class PatchDict(OrderedDict):
 @click.option('--side', default=20.0)
 @click.option('--height', default=0.0)
 @click.option('--Re', default=100.0)
-@click.option('--grad', default=1.05)
+@click.option('--grad', required=False)
 @click.option('--nel-bndl', default=10)
 @click.option('--inner-elsize', type=float, required=False)
 @click.option('--nel-side', type=int, required=False)
