@@ -19,6 +19,26 @@ def graded_space(start, step, factor, N):
     return list(gen_graded_space(float(start), float(step), float(factor), N))
 
 
+def find_factor(initial, total, N, tol=1e-7):
+    # Solve initial * (1 - a^N) / (1 - a) = total
+    overshoot = lambda a: initial * (1 - (1 + a)**N) / (1 - (1 + a)) - total
+    l, u = 0.5, 0.5
+    while overshoot(l) > 0:
+        l /= 2
+    while overshoot(u) < 0:
+        u *= 2
+    while True:
+        m = (u + l) / 2
+        s = overshoot(m)
+        if abs(s) < tol:
+            break
+        if s > 0:
+            u = m
+        else:
+            l = m
+    return 1 + m
+
+
 class PatchDict(OrderedDict):
 
     def __init__(self, dim, *args, **kwargs):
@@ -97,13 +117,14 @@ class PatchDict(OrderedDict):
 @click.option('--height', default=0.0)
 @click.option('--Re', default=100.0)
 @click.option('--grad', default=1.05)
+@click.option('--inner-elsize', type=float, required=False)
 @click.option('--nel-bndl', default=10)
 @click.option('--nel-circ', default=40)
 @click.option('--nel-height', default=10)
 @click.option('--order', default=4)
 @click.option('--outer-graded/--no-outer-graded', default=True)
 @click.option('--out', default='out')
-def cylinder(diam, width, front, back, side, height, re, grad,
+def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
              nel_bndl, nel_circ, nel_height, order, out, outer_graded):
     assert all(f >= width for f in [front, back, side])
 
@@ -117,15 +138,25 @@ def cylinder(diam, width, front, back, side, height, re, grad,
     dim = 2 if height == 0.0 else 3
     patches = PatchDict(dim)
 
-    # We want nel_bndl elements inside the boundary layer
-    # Calculate how small the inner element must be
-    size_bndl = 1 / sqrt(re) * diam
-    dr = (1 - grad) / (1 - grad ** nel_bndl) * size_bndl
+    if inner_elsize:
+        # Calculate grading factor based on first element size,
+        # total length and number of elements
+        dr = rad_cyl * inner_elsize
+        grad = find_factor(dr, width - rad_cyl, nel_side)
 
-    # Potentially reduce element size so we get a whole number of elements
-    # on either side of the cylinder
-    nel_side = int(ceil(log(1 - 1/dr * (1 - grad) * (width - rad_cyl)) / log(grad)))
-    dr = (1 - grad) / (1 - grad ** nel_side) * (width - rad_cyl)
+    else:
+        # Calculate first element size based on total length
+        # and number of elements
+
+        # We want nel_bndl elements inside the boundary layer
+        # Calculate how small the inner element must be
+        size_bndl = 1 / sqrt(re) * diam
+        dr = (1 - grad) / (1 - grad ** nel_bndl) * size_bndl
+
+        # Potentially reduce element size so we get a whole number of elements
+        # on either side of the cylinder
+        nel_side = int(ceil(log(1 - 1/dr * (1 - grad) * (width - rad_cyl)) / log(grad)))
+        dr = (1 - grad) / (1 - grad ** nel_side) * (width - rad_cyl)
 
     # Graded radial space from cylinder to edge of domain
     radial_kts = graded_space(rad_cyl, dr, grad, nel_side) + [width]
