@@ -47,6 +47,7 @@ class PatchDict(OrderedDict):
         self.dim = dim
         self.masters = {}
         self.boundaries = {}
+        self.periodics = []
 
     def add(self, *args):
         names, patches = args[:-1], args[-1]
@@ -57,7 +58,13 @@ class PatchDict(OrderedDict):
         for master, medge, slave, sedge, *rest in args:
             rev = 'rev' in rest
             per = 'per' in rest
-            self.masters[(master, medge)] = (slave, sedge, rev, per)
+
+            if master == slave and per:
+                self.periodics.append((master, max(medge, sedge) // 2))
+            elif master != slave:
+                self.masters[(master, medge)] = (slave, sedge, rev, per)
+            else:
+                raise Exception('What?')
 
     def boundary(self, name, patch, number, dim=-1):
         kind = {
@@ -94,6 +101,12 @@ class PatchDict(OrderedDict):
                 'sidx': str(sedge),
                 'reverse': 'true' if rev else 'false',
                 'periodic': 'true' if periodic else 'false',
+            })
+        for patch, direction in self.periodics:
+            pid = pids[patch] + 1
+            xml.SubElement(topology, 'periodic').attrib.update({
+                'patch': str(pid),
+                'dir': str(direction),
             })
 
         topsets = xml.SubElement(dom, 'topologysets')
