@@ -319,12 +319,12 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
         patches.boundary('bottom', 'od', 2)
         patches.boundary('top', 'or', 4, dim=-2, add=vx_add)
         patches.boundary('bottom', 'or', 2, dim=-2, add=vx_add)
-        patches.boundary('top', 'ol', 2, dim=-2, add=vx_add)
-        patches.boundary('bottom', 'ol', 4, dim=-2, add=vx_add)
 
         if 'fr' in patches:
             patches.boundary('top', 'fr', 4)
             patches.boundary('bottom', 'fr', 3)
+            patches.boundary('top', 'ol', 2, dim=-2, add=vx_add)
+            patches.boundary('bottom', 'ol', 4, dim=-2, add=vx_add)
 
         if 'ba' in patches:
             patches.boundary('top', 'ba', 4)
