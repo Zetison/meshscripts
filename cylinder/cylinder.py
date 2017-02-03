@@ -66,11 +66,12 @@ class PatchDict(OrderedDict):
             else:
                 raise Exception('What?')
 
-    def boundary(self, name, patch, number, dim=-1):
+    def boundary(self, name, patch, number, dim=-1, add=0):
         kind = {
             2: ['vertex', 'edge'],
             3: ['vertex', 'edge', 'face'],
         }[self.dim][dim]
+        number += add
         self.boundaries.setdefault(name, {}).setdefault(kind, []).append((patch, number))
 
     def write(self, fn, order=4):
@@ -151,6 +152,7 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
     elsize = width * 2 / nel_circ
 
     dim = 2 if height == 0.0 else 3
+    vx_add = 8 if dim == 3 else 0
     patches = PatchDict(dim)
 
     if inner_elsize and nel_side:
@@ -242,8 +244,8 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
         patches.boundary('inflow', 'fr', 1)
     else:
         patches.boundary('inflow', 'ol', 2)
-        patches.boundary('inflow', 'ou', 4, dim=-2)
-        patches.boundary('inflow', 'od', 2, dim=-2)
+        patches.boundary('inflow', 'ou', 4, dim=-2, add=vx_add)
+        patches.boundary('inflow', 'od', 2, dim=-2, add=vx_add)
 
     if back > 0:
         la = patches['or'].section(u=-1)
@@ -315,10 +317,10 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
     else:
         patches.boundary('top', 'ou', 2)
         patches.boundary('bottom', 'od', 2)
-        patches.boundary('top', 'or', 4, dim=-2)
-        patches.boundary('bottom', 'or', 2, dim=-2)
-        patches.boundary('top', 'ol', 2, dim=-2)
-        patches.boundary('bottom', 'ol', 4, dim=-2)
+        patches.boundary('top', 'or', 4, dim=-2, add=vx_add)
+        patches.boundary('bottom', 'or', 2, dim=-2, add=vx_add)
+        patches.boundary('top', 'ol', 2, dim=-2, add=vx_add)
+        patches.boundary('bottom', 'ol', 4, dim=-2, add=vx_add)
 
         if 'fr' in patches:
             patches.boundary('top', 'fr', 4)
