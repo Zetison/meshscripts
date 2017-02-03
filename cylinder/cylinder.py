@@ -77,7 +77,7 @@ class PatchDict(OrderedDict):
             f.write(patches)
 
         dom = xml.Element('geometry')
-        dom.attrib['dim'] = '2'
+        dom.attrib['dim'] = str(patches[0].pardim)
         xml.SubElement(dom, 'patchfile').text = fn + '.g2'
 
         topology = xml.SubElement(dom, 'topology')
@@ -91,7 +91,7 @@ class PatchDict(OrderedDict):
                 'master': str(mid),
                 'midx': str(medge),
                 'slave': str(sid),
-                'midx': str(sedge),
+                'sidx': str(sedge),
                 'reverse': 'true' if rev else 'false',
                 'periodic': 'true' if periodic else 'false',
             })
@@ -117,7 +117,7 @@ class PatchDict(OrderedDict):
 @click.option('--side', default=20.0)
 @click.option('--height', default=0.0)
 @click.option('--Re', default=100.0)
-@click.option('--grad', required=False)
+@click.option('--grad', type=float, required=False)
 @click.option('--nel-bndl', default=10)
 @click.option('--inner-elsize', type=float, required=False)
 @click.option('--nel-side', type=int, required=False)
