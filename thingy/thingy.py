@@ -1,4 +1,5 @@
 import click
+import numpy as np
 
 from splipy import curve_factory as cf, surface_factory as sf
 from splipy.IO import G2
@@ -16,7 +17,7 @@ def thingy(out, elements):
 
     thingy = sf.edge_curves(left, right)
     thingy.raise_order(0, 1)
-    thingy.refine(*elements)
+    thingy.refine(*[e - 1 for e in elements])
 
     with G2(out + '.g2') as f:
         f.write([thingy])
