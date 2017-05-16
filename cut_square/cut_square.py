@@ -13,8 +13,9 @@ from splipy.IO import G2
 @click.option('--radius', default=0.2)
 @click.option('--inner-radius', default=0.4)
 @click.option('--nel-ang', default=14)
+@click.option('--order', default=4)
 @click.option('--out', default='out')
-def cut_square(width, height, radius, inner_radius, nel_ang, out):
+def cut_square(width, height, radius, inner_radius, nel_ang, order, out):
 
     # Compute number of elements along each part
     rest1 = height - radius - inner_radius
@@ -48,8 +49,11 @@ def cut_square(width, height, radius, inner_radius, nel_ang, out):
     edge2 = edge1 + (0, height - dist, 0)
     rect = sf.edge_curves(edge1, edge2).set_order(4,4).refine(0, nel_rest1-1)
 
+    diff = 4 - order
+    patches = [patch.lower_order(diff, diff) for patch in [cyl1, cyl2, rect1, rect2, rect]]
+
     with G2(out + '.g2') as f:
-        f.write([cyl1, cyl2, rect1, rect2, rect])
+        f.write(patches)
 
     root = etree.Element('geometry')
     etree.SubElement(root, 'patchfile').text = out + '.g2'
