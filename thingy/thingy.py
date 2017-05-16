@@ -7,10 +7,11 @@ from splipy.IO import G2
 
 @click.command()
 @click.option('--elements', nargs=2, default=(3, 20))
+@click.option('--radius', default=4.0)
 @click.option('--out', default='out')
-def thingy(out, elements):
+def thingy(radius, elements, out):
     right = cf.circle_segment(np.pi/2)
-    right.rotate(-np.pi/4).translate((3, 0, 0))
+    right.rotate(-np.pi/4).translate((radius-1, 0, 0))
 
     left = right.clone().rotate(np.pi)
     right.reverse()
