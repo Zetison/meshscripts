@@ -66,6 +66,19 @@ def cut_square(width, height, radius, inner_radius, nel_ang, order, out):
             'reverse': 'true' if rev else 'false',
         })
 
+    topsets = etree.SubElement(root, 'topologysets')
+    for name, entries in [('Circle', [(1, (3,)), (2, (3,))]),
+                          ('Left',   [(1, (1,)), (3, (1,))]),
+                          ('Right',  [(4, (4,)), (5, (2,))]),
+                          ('Top',    [(3, (4,)), (5, (4,))]),
+                          ('Bottom', [(2, (2,)), (4, (2,))])]:
+        topset = etree.SubElement(topsets, 'set')
+        topset.attrib.update({'name': name, 'type': 'edge'})
+        for pid, indices in entries:
+            item = etree.SubElement(topset, 'item')
+            item.attrib['patch'] = str(pid)
+            item.text = ' '.join(str(i) for i in indices)
+
     with open(out + '.xinp', 'wb') as f:
         f.write(etree.tostring(
             root, pretty_print=True, encoding='utf-8', xml_declaration=True, standalone=False
