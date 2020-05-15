@@ -2,7 +2,7 @@ import click
 from collections import OrderedDict
 from math import ceil, log, sqrt, pi
 import numpy as np
-import xml.etree.ElementTree as xml
+from lxml import etree as xml
 import sys
 
 from splipy import curve_factory as cf, surface_factory as sf
@@ -120,7 +120,7 @@ class PatchDict(OrderedDict):
                     item.attrib['patch'] = str(pids[patch] + 1)
                     item.text = str(number)
 
-        xml.ElementTree(dom).write(fn + '.xinp', encoding='utf-8', xml_declaration=True)
+        xml.ElementTree(dom).write(fn + '.xinp', encoding='utf-8', xml_declaration=True, pretty_print=True, standalone=False)
 
 
 @click.command()
