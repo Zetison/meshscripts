@@ -6,7 +6,7 @@ import xml.etree.ElementTree as xml
 import sys
 
 from splipy import curve_factory as cf, surface_factory as sf
-from splipy.IO import G2
+from splipy.io import G2
 from splipy.utils.refinement import geometric_refine
 from splipy.volume_factory import extrude
 
@@ -281,9 +281,9 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
                 ('upfr', 3, 'fr', 4), ('upfr', 2, 'up', 1),
                 ('dnfr', 4, 'fr', 3), ('dnfr', 2, 'dn', 1),
             )
-            patches.boundary('top', 'upfr', 4)
+            patches.boundary('wall', 'upfr', 4)
             patches.boundary('inflow', 'upfr', 1)
-            patches.boundary('bottom', 'dnfr', 3)
+            patches.boundary('wall', 'dnfr', 3)
             patches.boundary('inflow', 'dnfr', 1)
         else:
             patches.boundary('inflow', 'up', 1)
@@ -299,9 +299,9 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
                 ('upba', 3, 'ba', 4), ('upba', 1, 'up', 2),
                 ('dnba', 4, 'ba', 3), ('dnba', 1, 'dn', 2),
             )
-            patches.boundary('top', 'upba', 4)
+            patches.boundary('wall', 'upba', 4)
             patches.boundary('outflow', 'upfr', 2)
-            patches.boundary('bottom', 'dnba', 3)
+            patches.boundary('wall', 'dnba', 3)
             patches.boundary('outflow', 'dnba', 2)
         else:
             patches.boundary('outflow', 'up', 2)
@@ -315,20 +315,20 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
             geometric_refine(patches[dk], grad, nel - 1, direction='v', reverse=True)
 
     else:
-        patches.boundary('top', 'ou', 2)
-        patches.boundary('bottom', 'od', 2)
-        patches.boundary('top', 'or', 4, dim=-2, add=vx_add)
-        patches.boundary('bottom', 'or', 2, dim=-2, add=vx_add)
+        patches.boundary('wall', 'ou', 2)
+        patches.boundary('wall', 'od', 2)
+        patches.boundary('wall', 'or', 4, dim=-2, add=vx_add)
+        patches.boundary('wall', 'or', 2, dim=-2, add=vx_add)
 
         if 'fr' in patches:
-            patches.boundary('top', 'fr', 4)
-            patches.boundary('bottom', 'fr', 3)
-            patches.boundary('top', 'ol', 2, dim=-2, add=vx_add)
-            patches.boundary('bottom', 'ol', 4, dim=-2, add=vx_add)
+            patches.boundary('wall', 'fr', 4)
+            patches.boundary('wall', 'fr', 3)
+            patches.boundary('wall', 'ol', 2, dim=-2, add=vx_add)
+            patches.boundary('wall', 'ol', 4, dim=-2, add=vx_add)
 
         if 'ba' in patches:
-            patches.boundary('top', 'ba', 4)
-            patches.boundary('bottom', 'ba', 3)
+            patches.boundary('wall', 'ba', 4)
+            patches.boundary('wall', 'ba', 3)
 
 
     if height > 0.0:
