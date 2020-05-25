@@ -81,6 +81,11 @@ class PatchDict(OrderedDict):
             diff = [o - order for o in patch.order()]
             patches.append(patch.lower_order(*diff))
 
+        for patch in patches:
+            du = patch.derivative(patch.start('u'), patch.start('v'), d=(1,0))
+            dv = patch.derivative(patch.start('u'), patch.start('v'), d=(0,1))
+            assert np.cross(du, dv)[2] > 0.0
+
         with G2(fn + '.g2') as f:
             f.write(patches)
 
@@ -219,7 +224,7 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
     outer = cf.line((-width, width, 0), (width, width, 0))
     outer.set_order(4).refine(nel_circ - 1)
     inner = patches['iu'].section(u=-1)
-    outer = sf.edge_curves(right, outer, left, inner).reverse('v')
+    outer = sf.edge_curves(right, outer, left, inner)
 
     patches.add('ou', 'ol', 'od', 'or', [outer.clone().rotate(v) for v in [0, pi/2, pi, 3*pi/2]])
     patches.connect(
@@ -234,9 +239,9 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
     )
 
     if front > 0:
-        la = patches['ol'].section(u=-1)
+        la = patches['ol'].section(u=-1).reverse()
         lb = la.clone() - (front, 0, 0)
-        front_srf = sf.edge_curves(lb, la).set_order(4,4).swap().reverse('v')
+        front_srf = sf.edge_curves(lb, la).set_order(4,4).swap()
         nel = int(ceil(log(1 - 1/dl * (1 - grad) * front) / log(grad)))
         geometric_refine(front_srf, grad, nel - 1, reverse=True)
         patches['fr'] = front_srf
@@ -248,9 +253,9 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
         patches.boundary('inflow', 'od', 2, dim=-2, add=vx_add)
 
     if back > 0:
-        la = patches['or'].section(u=-1)
+        la = patches['or'].section(u=-1).reverse()
         lb = la.clone() + (back, 0, 0)
-        back_srf = sf.edge_curves(la, lb).set_order(4,4).swap()
+        back_srf = sf.edge_curves(la, lb).set_order(4,4).swap().reverse('v')
         if outer_graded:
             nel = int(ceil(log(1 - 1/dl * (1 - grad) * back) / log(grad)))
             geometric_refine(back_srf, grad, nel - 1)
@@ -264,9 +269,9 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
         patches.boundary('outflow', 'or', 2)
 
     if side > 0:
-        la = patches['ou'].section(u=-1).reverse()
+        la = patches['ou'].section(u=-1)
         lb = la + (0, side, 0)
-        patches['up'] = sf.edge_curves(la, lb).set_order(4,4)
+        patches['up'] = sf.edge_curves(la, lb).set_order(4,4).reverse('u')
         patches.connect(('up', 3, 'ou', 2, 'rev'), ('dn', 4, 'od', 2))
         patches.boundary('top', 'up', 4)
         patches.boundary('bottom', 'dn', 3)
