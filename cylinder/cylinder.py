@@ -143,10 +143,11 @@ class PatchDict(OrderedDict):
 @click.option('--nel-circ', default=40)
 @click.option('--nel-height', default=10)
 @click.option('--order', default=4)
+@click.option('--thickness', default=4.0)
 @click.option('--outer-graded/--no-outer-graded', default=True)
 @click.option('--out', default='out')
 def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
-             nel_side, nel_bndl, nel_circ, nel_height, order, out, outer_graded):
+             nel_side, nel_bndl, nel_circ, nel_height, order, out, outer_graded,thickness):
     assert all(f >= width for f in [front, back, side])
 
     rad_cyl = diam / 2
@@ -177,7 +178,8 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
 
         # Potentially reduce element size so we get a whole number of elements
         # on either side of the cylinder
-        nel_side = int(ceil(log(1 - 1/dr * (1 - grad) * (width - rad_cyl)) / log(grad)))
+        #nel_side = int(ceil(log(1 - 1/dr * (1 - grad) * (width - rad_cyl)) / log(grad)))
+        nel_side = int(round(log(1 - 1/dr * (1 - grad) * (width - rad_cyl)) / log(grad)))
         dr = (1 - grad) / (1 - grad ** nel_side) * (width - rad_cyl)
 
     else:
@@ -191,7 +193,8 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
     radial = cf.cubic_curve(np.matrix(radial_kts).T, boundary=cf.Boundary.NATURAL)
     radial.set_dimension(3)
     radial_kts = radial.knots('u')
-    middle = radial_kts[len(radial_kts) // 2]
+    # middle = radial_kts[len(radial_kts) // 2]
+    middle = next(k for k in radial_kts if k>=thickness*diam)
     radial_inner, radial_outer = radial.split(middle, 'u')
     radial_inner.rotate(pi/4)
     dl = np.linalg.norm(radial_outer(radial_outer.knots('u')[-2]) - radial_outer.section(u=-1)) * grad
@@ -260,7 +263,8 @@ def cylinder(diam, width, front, back, side, height, re, grad, inner_elsize,
             nel = int(ceil(log(1 - 1/dl * (1 - grad) * back) / log(grad)))
             geometric_refine(back_srf, grad, nel - 1)
         else:
-            nel = int(ceil(back / dl))
+            #nel = int(ceil(back / dl))
+            nel = int(round(back / (2*width) * nel_circ))
             back_srf.refine(nel - 1, direction='u')
         patches['ba'] = back_srf
         patches.connect(('ba', 1, 'or', 2))
